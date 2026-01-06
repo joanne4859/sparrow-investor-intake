@@ -1,0 +1,15 @@
+{
+  "name": "sparrow-investor-intake",
+  "version": "1.0.0",
+  "description": "Serverless backend to autosave Webflow form data to Notion CRM",
+  "main": "api/save-to-notion.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": ["webflow", "notion", "integration", "serverless"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@notionhq/client": "^2.2.15"
+  }
+}
