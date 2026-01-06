@@ -13,7 +13,7 @@ const DATABASE_ID = process.env.NOTION_DATABASE_ID;
  */
 module.exports = async (req, res) => {
   // Enable CORS for Webflow domain
-  res.setHeader('Access-Control-Allow-Origin', '*'); // Change to your Webflow domain in production
+  res.setHeader('Access-Control-Allow-Origin', 'https://sparrow-ecf.webflow.io'); // Change to your Webflow domain in production
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
