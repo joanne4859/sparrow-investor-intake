@@ -13,7 +13,7 @@ const DATABASE_ID = process.env.NOTION_DATABASE_ID;
  */
 module.exports = async (req, res) => {
   // Enable CORS for Webflow domain
-  res.setHeader('Access-Control-Allow-Origin', 'https://sparrow-ecf.webflow.io'); // Change to your Webflow domain in production
+  res.setHeader('Access-Control-Allow-Origin', '*'); // Change to your Webflow domain in production
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -65,11 +65,28 @@ module.exports = async (req, res) => {
       };
     }
 
-    // Add Group field (keeping it consistent with your database)
-    // You can customize this based on your needs
     properties['Group'] = {
       select: {
         name: 'ECF'
+      }
+    }
+
+    // Add timestamps for tracking
+    const now = new Date().toISOString();
+    
+    // If this is a new entry, set Created At timestamp
+    if (!entry_id) {
+      properties['Created At'] = {
+        date: {
+          start: now
+        }
+      };
+    }
+    
+    // Always update Last Updated timestamp
+    properties['Last Updated'] = {
+      date: {
+        start: now
       }
     };
 
@@ -114,5 +131,3 @@ module.exports = async (req, res) => {
     });
   }
 };
-
-// test again
