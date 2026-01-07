@@ -28,7 +28,7 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { first_name, last_name, phone_number, email, entry_id } = req.body;
+    const { first_name, last_name, phone_number, email, is_accredited, entry_id } = req.body;
 
     // CRITICAL: Only save if email OR phone is provided
     if (!email && !phone_number) {
@@ -92,6 +92,13 @@ module.exports = async (req, res) => {
         }
       ]
     };
+
+    // Add Accredited Investor status if provided
+    if (is_accredited !== undefined) {
+      properties['Accredited Investor'] = {
+        checkbox: is_accredited
+      };
+    }
 
     // If entry_id exists, UPDATE existing entry. Otherwise, CREATE new entry.
     if (entry_id) {
