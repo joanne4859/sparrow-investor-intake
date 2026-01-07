@@ -65,12 +65,6 @@ module.exports = async (req, res) => {
       };
     }
 
-    properties['Group'] = {
-      select: {
-        name: 'ECF'
-      }
-    }
-
     // Add timestamps for tracking
     const now = new Date().toISOString();
     
@@ -88,6 +82,15 @@ module.exports = async (req, res) => {
       date: {
         start: now
       }
+    };
+
+    // Add Group relation - automatically assigns to "ECF - DM" group
+    properties['Group'] = {
+      relation: [
+        {
+          id: '2e110ef8d70d80aa872fc31246ca1f85'
+        }
+      ]
     };
 
     // If entry_id exists, UPDATE existing entry. Otherwise, CREATE new entry.
