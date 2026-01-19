@@ -10,6 +10,7 @@ const DATABASE_ID = process.env.NOTION_DATABASE_ID;
 /**
  * Main serverless function handler
  * Handles progressive form autosave to Notion CRM
+ * NOW WITH: Duplicate prevention + Investment amount tracking
  */
 module.exports = async (req, res) => {
   // Enable CORS for Webflow domain
@@ -28,7 +29,17 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { first_name, last_name, phone_number, email, is_accredited, entry_id } = req.body;
+    // NEW: Extract investment_amount and update_existing from request body
+    const { 
+      first_name, 
+      last_name, 
+      phone_number, 
+      email, 
+      is_accredited, 
+      investment_amount,  // NEW: Investment amount from calculator
+      entry_id,
+      update_existing     // NEW: Flag to enable duplicate prevention
+    } = req.body;
 
     // CRITICAL: Only save if email OR phone is provided
     if (!email && !phone_number) {
@@ -36,6 +47,54 @@ module.exports = async (req, res) => {
         error: 'Contact method required',
         message: 'Must provide email or phone number before saving'
       });
+    }
+
+    // NEW: Search for existing entry by email or phone (duplicate prevention)
+    let existingEntry = null;
+    let matchedBy = null;
+    
+    if (update_existing && !entry_id) {
+      try {
+        const filters = [];
+        
+        if (email) {
+          filters.push({
+            property: "Email",
+            email: { equals: email }
+          });
+        }
+        
+        if (phone_number) {
+          filters.push({
+            property: "Phone",
+            phone_number: { equals: phone_number }
+          });
+        }
+        
+        const searchResults = await notion.databases.query({
+          database_id: DATABASE_ID,
+          filter: filters.length > 1 
+            ? { or: filters } 
+            : filters[0]
+        });
+        
+        if (searchResults.results.length > 0) {
+          existingEntry = searchResults.results[0];
+          
+          // Determine which field matched
+          const props = existingEntry.properties;
+          if (props.Email?.email === email) {
+            matchedBy = 'email';
+          } else if (props.Phone?.phone_number === phone_number) {
+            matchedBy = 'phone';
+          }
+          
+          console.log(`Found existing entry (matched by ${matchedBy}):`, existingEntry.id);
+        }
+      } catch (error) {
+        console.error('Error searching for existing entry:', error);
+        // Continue with creation if search fails
+      }
     }
 
     // Prepare properties for Notion database
@@ -65,11 +124,21 @@ module.exports = async (req, res) => {
       };
     }
 
+    // NEW: Add investment amount if provided
+    if (investment_amount) {
+      properties['Investment Amount'] = {
+        number: parseFloat(investment_amount)
+      };
+    }
+
     // Add timestamps for tracking
     const now = new Date().toISOString();
     
+    // Determine which entry ID to use (existing match or provided entry_id)
+    const targetEntryId = existingEntry?.id || entry_id;
+    
     // If this is a new entry, set Created At timestamp
-    if (!entry_id) {
+    if (!targetEntryId) {
       properties['Created At'] = {
         date: {
           start: now
@@ -100,11 +169,11 @@ module.exports = async (req, res) => {
       };
     }
 
-    // If entry_id exists, UPDATE existing entry. Otherwise, CREATE new entry.
-    if (entry_id) {
+    // If targetEntryId exists, UPDATE existing entry. Otherwise, CREATE new entry.
+    if (targetEntryId) {
       // Update existing Notion page
       const response = await notion.pages.update({
-        page_id: entry_id,
+        page_id: targetEntryId,
         properties: properties
       });
 
@@ -112,7 +181,8 @@ module.exports = async (req, res) => {
         success: true,
         message: 'Entry updated successfully',
         entry_id: response.id,
-        action: 'updated'
+        action: 'updated',
+        matched_by: matchedBy  // NEW: Tell frontend which field matched
       });
     } else {
       // Create new Notion page
