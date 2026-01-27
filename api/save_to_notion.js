@@ -10,11 +10,11 @@ const DATABASE_ID = process.env.NOTION_DATABASE_ID;
 /**
  * Main serverless function handler
  * Handles progressive form autosave to Notion CRM
- * NOW WITH: Duplicate prevention + Investment amount tracking
+ * WITH: Duplicate prevention + Investment amount tracking + UTM parameters + AC prep
  */
 module.exports = async (req, res) => {
   // Enable CORS for Webflow domain
-  res.setHeader('Access-Control-Allow-Origin', '*'); // Change to your Webflow domain in production
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
@@ -29,19 +29,31 @@ module.exports = async (req, res) => {
   }
 
   try {
-    // NEW: Extract investment_amount and update_existing from request body
+    // Extract all fields from request body
     const { 
       first_name, 
       last_name, 
       phone_number, 
       email, 
       is_accredited, 
-      investment_amount,  // NEW: Investment amount from calculator
+      investment_amount,
       entry_id,
-      update_existing     // NEW: Flag to enable duplicate prevention
+      update_existing,
+      // UTM parameters
+      utm_source,
+      utm_medium,
+      utm_campaign,
+      utm_content,
+      utm_term,
+      // ActiveCampaign fields
+      ac_sync_status,
+      investor_state,
+      funding_state,
+      marketing_consent,
+      tags
     } = req.body;
 
-    // CRITICAL: Only save if email OR phone is provided
+    // Only save if email OR phone is provided
     if (!email && !phone_number) {
       return res.status(400).json({
         error: 'Contact method required',
@@ -49,7 +61,7 @@ module.exports = async (req, res) => {
       });
     }
 
-    // NEW: Search for existing entry by email or phone (duplicate prevention)
+    // Search for existing entry by email or phone (duplicate prevention)
     let existingEntry = null;
     let matchedBy = null;
     
@@ -124,10 +136,72 @@ module.exports = async (req, res) => {
       };
     }
 
-    // NEW: Add investment amount if provided
+    // Add investment amount if provided
     if (investment_amount) {
       properties['Investment Amount'] = {
         number: parseFloat(investment_amount)
+      };
+    }
+
+    // Add UTM parameters
+    if (utm_source) {
+      properties['UTM Source'] = {
+        rich_text: [{ text: { content: utm_source } }]
+      };
+    }
+
+    if (utm_medium) {
+      properties['UTM Medium'] = {
+        rich_text: [{ text: { content: utm_medium } }]
+      };
+    }
+
+    if (utm_campaign) {
+      properties['UTM Campaign'] = {
+        rich_text: [{ text: { content: utm_campaign } }]
+      };
+    }
+
+    if (utm_content) {
+      properties['UTM Content'] = {
+        rich_text: [{ text: { content: utm_content } }]
+      };
+    }
+
+    if (utm_term) {
+      properties['UTM Term'] = {
+        rich_text: [{ text: { content: utm_term } }]
+      };
+    }
+
+    // Add ActiveCampaign integration fields
+    if (ac_sync_status) {
+      properties['AC Sync Status'] = {
+        select: { name: ac_sync_status }
+      };
+    }
+
+    if (investor_state) {
+      properties['Investor State'] = {
+        select: { name: investor_state }
+      };
+    }
+
+    if (funding_state) {
+      properties['Funding State'] = {
+        select: { name: funding_state }
+      };
+    }
+
+    if (marketing_consent !== undefined) {
+      properties['Marketing Consent'] = {
+        checkbox: marketing_consent
+      };
+    }
+
+    if (tags && Array.isArray(tags) && tags.length > 0) {
+      properties['Tags'] = {
+        multi_select: tags.map(tag => ({ name: tag }))
       };
     }
 
@@ -182,7 +256,7 @@ module.exports = async (req, res) => {
         message: 'Entry updated successfully',
         entry_id: response.id,
         action: 'updated',
-        matched_by: matchedBy  // NEW: Tell frontend which field matched
+        matched_by: matchedBy
       });
     } else {
       // Create new Notion page
