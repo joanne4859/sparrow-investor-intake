@@ -236,7 +236,7 @@ module.exports = async (req, res) => {
     }
 
     if (investor_funded_status !== undefined) {
-      properties['Investor_Funded_Status_ecf26'] = {
+      properties['investor_funded_status_ecf26'] = {
         checkbox: investor_funded_status
       };
     }
@@ -256,7 +256,7 @@ module.exports = async (req, res) => {
 
     // ===== DEALMAKER INTEGRATION =====
     if (investor_state) {
-      properties['Investor_State_ecf26'] = {
+      properties['investor_state_ecf26'] = {
         select: { name: investor_state }
       };
     }
