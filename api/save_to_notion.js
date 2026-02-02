@@ -10,7 +10,8 @@ const DATABASE_ID = process.env.NOTION_DATABASE_ID;
 /**
  * Main serverless function handler
  * Handles progressive form autosave to Notion CRM
- * WITH: Duplicate prevention + Investment amount tracking + UTM parameters + AC prep
+ * WITH: Duplicate prevention + Investment tracking + UTM parameters + 
+ *       Event triggers + DealMaker integration + ActiveCampaign prep
  */
 module.exports = async (req, res) => {
   // Enable CORS for Webflow domain
@@ -31,25 +32,49 @@ module.exports = async (req, res) => {
   try {
     // Extract all fields from request body
     const { 
+      // ===== CONTACT INFO =====
       first_name, 
       last_name, 
       phone_number, 
-      email, 
-      is_accredited, 
+      email,
+      
+      // ===== ADDRESS INFO =====
+      street_address,
+      unit2,
+      city,
+      region,
+      postal_code,
+      country,
+      
+      // ===== INVESTMENT INFO =====
       investment_amount,
+      is_accredited,
+      
+      // ===== SYSTEM FIELDS =====
       entry_id,
       update_existing,
-      // UTM parameters
+      
+      // ===== UTM PARAMETERS =====
       utm_source,
       utm_medium,
       utm_campaign,
       utm_content,
       utm_term,
-      // ActiveCampaign fields
-      ac_sync_status,
-      investor_state,
-      funding_state,
+      
+      // ===== EVENT TRIGGERS (Boolean) =====
+      entered_funnel,
+      checkout2_started,
+      investor_funded_status,
+      
+      // ===== CONSENT FIELDS =====
       marketing_consent,
+      sms_consent,
+      
+      // ===== DEALMAKER INTEGRATION =====
+      investor_state,
+      
+      // ===== ACTIVECAMPAIGN FIELDS =====
+      ac_sync_status,
       tags
     } = req.body;
 
@@ -122,28 +147,51 @@ module.exports = async (req, res) => {
       }
     };
 
-    // Add email if provided
+    // ===== CONTACT INFORMATION =====
     if (email) {
       properties['Email'] = {
         email: email
       };
     }
 
-    // Add phone if provided
     if (phone_number) {
       properties['Phone'] = {
         phone_number: phone_number
       };
     }
 
-    // Add investment amount if provided
+    // ===== ADDRESS INFORMATION =====
+    if (street_address || unit2 || city || region || postal_code || country) {
+      const addressParts = [
+        street_address,
+        unit2,
+        city,
+        region,
+        postal_code,
+        country
+      ].filter(Boolean);
+      
+      if (addressParts.length > 0) {
+        properties['Address'] = {
+          rich_text: [{ text: { content: addressParts.join(', ') } }]
+        };
+      }
+    }
+
+    // ===== INVESTMENT INFORMATION =====
     if (investment_amount) {
       properties['Investment Amount'] = {
         number: parseFloat(investment_amount)
       };
     }
 
-    // Add UTM parameters
+    if (is_accredited !== undefined) {
+      properties['Accredited Investor'] = {
+        checkbox: is_accredited
+      };
+    }
+
+    // ===== UTM PARAMETERS =====
     if (utm_source) {
       properties['UTM Source'] = {
         rich_text: [{ text: { content: utm_source } }]
@@ -174,28 +222,49 @@ module.exports = async (req, res) => {
       };
     }
 
-    // Add ActiveCampaign integration fields
-    if (ac_sync_status) {
-      properties['AC Sync Status'] = {
-        select: { name: ac_sync_status }
+    // ===== EVENT TRIGGERS (Boolean Status Fields) =====
+    if (entered_funnel !== undefined) {
+      properties['status: entered_funnel_ecf26'] = {
+        checkbox: entered_funnel
       };
     }
 
+    if (checkout2_started !== undefined) {
+      properties['action: checkout2_started_ecf26'] = {
+        checkbox: checkout2_started
+      };
+    }
+
+    if (investor_funded_status !== undefined) {
+      properties['Investor_Funded_Status_ecf26'] = {
+        checkbox: investor_funded_status
+      };
+    }
+
+    // ===== CONSENT FIELDS =====
+    if (marketing_consent !== undefined) {
+      properties['Marketing Consent'] = {
+        checkbox: marketing_consent
+      };
+    }
+
+    if (sms_consent !== undefined) {
+      properties['SMS Consent'] = {
+        checkbox: sms_consent
+      };
+    }
+
+    // ===== DEALMAKER INTEGRATION =====
     if (investor_state) {
-      properties['Investor State'] = {
+      properties['Investor_State_ecf26'] = {
         select: { name: investor_state }
       };
     }
 
-    if (funding_state) {
-      properties['Funding State'] = {
-        select: { name: funding_state }
-      };
-    }
-
-    if (marketing_consent !== undefined) {
-      properties['Marketing Consent'] = {
-        checkbox: marketing_consent
+    // ===== ACTIVECAMPAIGN INTEGRATION =====
+    if (ac_sync_status) {
+      properties['AC Sync Status'] = {
+        select: { name: ac_sync_status }
       };
     }
 
@@ -205,7 +274,7 @@ module.exports = async (req, res) => {
       };
     }
 
-    // Add timestamps for tracking
+    // ===== TIMESTAMPS =====
     const now = new Date().toISOString();
     
     // Determine which entry ID to use (existing match or provided entry_id)
@@ -214,36 +283,24 @@ module.exports = async (req, res) => {
     // If this is a new entry, set Created At timestamp
     if (!targetEntryId) {
       properties['Created At'] = {
-        date: {
-          start: now
-        }
+        date: { start: now }
       };
     }
     
     // Always update Last Updated timestamp
     properties['Last Updated'] = {
-      date: {
-        start: now
-      }
+      date: { start: now }
     };
 
-    // Add Group relation - automatically assigns to "ECF - DM" group
+    // ===== GROUP RELATION =====
+    // Automatically assigns to "ECF - DM" group
     properties['Group'] = {
       relation: [
-        {
-          id: '2e110ef8d70d80aa872fc31246ca1f85'
-        }
+        { id: '2e110ef8d70d80aa872fc31246ca1f85' }
       ]
     };
 
-    // Add Accredited Investor status if provided
-    if (is_accredited !== undefined) {
-      properties['Accredited Investor'] = {
-        checkbox: is_accredited
-      };
-    }
-
-    // If targetEntryId exists, UPDATE existing entry. Otherwise, CREATE new entry.
+    // ===== UPDATE OR CREATE ENTRY =====
     if (targetEntryId) {
       // Update existing Notion page
       const response = await notion.pages.update({
