@@ -122,7 +122,7 @@ async function updateNotion(payload) {
   try {
     const notionApiUrl = process.env.VERCEL_URL 
       ? `https://${process.env.VERCEL_URL}/api/save_to_notion`
-      : 'https://sparrow-investor-intake-8gqdta59u.vercel.app/api/save_to_notion';
+      : 'https://sparrow-investor-intake.vercel.app/api/save_to_notion';
 
     console.log('  → Updating Notion...');
     
