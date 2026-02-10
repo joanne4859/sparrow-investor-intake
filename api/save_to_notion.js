@@ -243,7 +243,7 @@ module.exports = async (req, res) => {
     }
 
     if (investor_deck_downloaded_ecf26 !== undefined) {
-      properties['action: investor_deck_downloaded_ecf26'] = {
+      properties['status: entered_funnel_pitch_ecf26'] = {
         checkbox: investor_deck_downloaded_ecf26
       };
     }
