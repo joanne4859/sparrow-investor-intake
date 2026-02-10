@@ -65,6 +65,7 @@ module.exports = async (req, res) => {
       entered_funnel,
       checkout2_started,
       investor_funded_status,
+      investor_deck_downloaded_ecf26,
       
       // ===== CONSENT FIELDS =====
       marketing_consent,
@@ -238,6 +239,12 @@ module.exports = async (req, res) => {
     if (investor_funded_status !== undefined) {
       properties['investor_funded_status_ecf26'] = {
         checkbox: investor_funded_status
+      };
+    }
+
+    if (investor_deck_downloaded_ecf26 !== undefined) {
+      properties['action: investor_deck_downloaded_ecf26'] = {
+        checkbox: investor_deck_downloaded_ecf26
       };
     }
 
