@@ -11,7 +11,9 @@ const DATABASE_ID = process.env.NOTION_DATABASE_ID;
  * Main serverless function handler
  * Handles progressive form autosave to Notion CRM
  * WITH: Duplicate prevention + Investment tracking + UTM parameters + 
- *       Event triggers + DealMaker integration + ActiveCampaign prep
+ *       Event triggers + DealMaker integration + ActiveCampaign prep +
+ *       DealMaker webhook fields for investment details
+ *
  */
 module.exports = async (req, res) => {
   // Enable CORS for Webflow domain
@@ -48,6 +50,17 @@ module.exports = async (req, res) => {
       // ===== INVESTMENT INFO =====
       investment_amount,
       is_accredited,
+      
+      // ===== DEALMAKER INVESTMENT DETAILS (from webhook) =====
+      security_type_ecf26,
+      investor_price_ecf26,
+      number_of_securities_ecf26,
+      payment_method_ecf26,
+      amount_dollars_ecf26,
+      ancillary_fees_ecf26,
+      total_amount_dollars_ecf26,
+      funds_state_ecf26,
+      bonus_shares_ecf26,
       
       // ===== SYSTEM FIELDS =====
       entry_id,
@@ -192,6 +205,71 @@ module.exports = async (req, res) => {
     if (is_accredited !== undefined) {
       properties['Accredited Investor'] = {
         checkbox: is_accredited
+      };
+    }
+
+    // ===== DEALMAKER INVESTMENT DETAILS =====
+    
+    // Security type (e.g., "Common Stock")
+    if (security_type_ecf26) {
+      properties['security_type_ecf26'] = {
+        rich_text: [{ text: { content: security_type_ecf26 } }]
+      };
+    }
+
+    // Price per security (investor's price)
+    if (investor_price_ecf26 !== undefined) {
+      properties['investor_price_ecf26'] = {
+        number: parseFloat(investor_price_ecf26)
+      };
+    }
+
+    // Number of securities purchased
+    if (number_of_securities_ecf26 !== undefined) {
+      properties['number_of_securities_ecf26'] = {
+        number: parseInt(number_of_securities_ecf26)
+      };
+    }
+
+    // Payment method (if available)
+    if (payment_method_ecf26) {
+      properties['payment_method_ecf26'] = {
+        rich_text: [{ text: { content: payment_method_ecf26 } }]
+      };
+    }
+
+    // Base investment amount (before fees/bonuses)
+    if (amount_dollars_ecf26 !== undefined) {
+      properties['amount_dollars_ecf26'] = {
+        number: parseFloat(amount_dollars_ecf26)
+      };
+    }
+
+    // Ancillary fees
+    if (ancillary_fees_ecf26 !== undefined) {
+      properties['ancillary_fees_ecf26'] = {
+        number: parseFloat(ancillary_fees_ecf26)
+      };
+    }
+
+    // Total amount (with fees)
+    if (total_amount_dollars_ecf26 !== undefined) {
+      properties['total_amount_dollars_ecf26'] = {
+        number: parseFloat(total_amount_dollars_ecf26)
+      };
+    }
+
+    // Funding state (unfunded, funded, overfunded)
+    if (funds_state_ecf26) {
+      properties['funds_state_ecf26'] = {
+        select: { name: funds_state_ecf26 }
+      };
+    }
+
+    // Bonus shares
+    if (bonus_shares_ecf26 !== undefined) {
+      properties['bonus_shares_ecf26'] = {
+        number: parseInt(bonus_shares_ecf26)
       };
     }
 
