@@ -225,7 +225,7 @@ module.exports = async (req, res) => {
 
     // ===== EVENT TRIGGERS (Boolean Status Fields) =====
     if (entered_funnel !== undefined) {
-      properties['status: entered_funnel_ecf26'] = {
+      properties['status: entered_funnel_checkout_ecf26'] = {
         checkbox: entered_funnel
       };
     }
