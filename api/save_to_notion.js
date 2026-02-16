@@ -40,7 +40,6 @@ module.exports = async (req, res) => {
       
       // ===== ADDRESS INFO =====
       street_address,
-      unit2,
       city,
       region,
       postal_code,
@@ -91,7 +90,8 @@ module.exports = async (req, res) => {
     let existingEntry = null;
     let matchedBy = null;
     
-    if (update_existing && !entry_id) {
+    // ALWAYS search if no entry_id is provided
+    if (!entry_id) {
       try {
         const filters = [];
         
@@ -102,32 +102,36 @@ module.exports = async (req, res) => {
           });
         }
         
-        if (phone_number) {
+        if (phone_number && !email) {
+          // Only search by phone if email is not provided
           filters.push({
             property: "Phone",
             phone_number: { equals: phone_number }
           });
         }
         
-        const searchResults = await notion.databases.query({
-          database_id: DATABASE_ID,
-          filter: filters.length > 1 
-            ? { or: filters } 
-            : filters[0]
-        });
-        
-        if (searchResults.results.length > 0) {
-          existingEntry = searchResults.results[0];
+        // Only search if we have at least one filter
+        if (filters.length > 0) {
+          const searchResults = await notion.databases.query({
+            database_id: DATABASE_ID,
+            filter: filters.length > 1 
+              ? { or: filters } 
+              : filters[0]
+          });
           
-          // Determine which field matched
-          const props = existingEntry.properties;
-          if (props.Email?.email === email) {
-            matchedBy = 'email';
-          } else if (props.Phone?.phone_number === phone_number) {
-            matchedBy = 'phone';
+          if (searchResults.results.length > 0) {
+            existingEntry = searchResults.results[0];
+            
+            // Determine which field matched
+            const props = existingEntry.properties;
+            if (props.Email?.email === email) {
+              matchedBy = 'email';
+            } else if (props.Phone?.phone_number === phone_number) {
+              matchedBy = 'phone';
+            }
+            
+            console.log(`Found existing entry (matched by ${matchedBy}):`, existingEntry.id);
           }
-          
-          console.log(`Found existing entry (matched by ${matchedBy}):`, existingEntry.id);
         }
       } catch (error) {
         console.error('Error searching for existing entry:', error);
