@@ -162,10 +162,9 @@ module.exports = async (req, res) => {
     }
 
     // ===== ADDRESS INFORMATION =====
-    if (street_address || unit2 || city || region || postal_code || country) {
+    if (street_address || city || region || postal_code || country) {
       const addressParts = [
         street_address,
-        unit2,
         city,
         region,
         postal_code,
