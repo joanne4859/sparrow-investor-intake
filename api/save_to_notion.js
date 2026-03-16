@@ -79,15 +79,10 @@ module.exports = async (req, res) => {
       investor_funded_status,
       investor_deck_downloaded_ecf26,
       
-      // ===== CONSENT FIELDS =====
-      marketing_consent,
-      sms_consent,
-      
       // ===== DEALMAKER INTEGRATION =====
       investor_state,
       
       // ===== ACTIVECAMPAIGN FIELDS =====
-      ac_sync_status,
       tags
     } = req.body;
 
@@ -318,7 +313,7 @@ module.exports = async (req, res) => {
     }
 
     if (investor_funded_status !== undefined) {
-      properties['investor_funded_status_ecf26'] = {
+      properties['status: investor_ecf26'] = {
         checkbox: investor_funded_status
       };
     }
@@ -326,19 +321,6 @@ module.exports = async (req, res) => {
     if (investor_deck_downloaded_ecf26 !== undefined) {
       properties['status: entered_funnel_pitch_ecf26'] = {
         checkbox: investor_deck_downloaded_ecf26
-      };
-    }
-
-    // ===== CONSENT FIELDS =====
-    if (marketing_consent !== undefined) {
-      properties['Marketing Consent'] = {
-        checkbox: marketing_consent
-      };
-    }
-
-    if (sms_consent !== undefined) {
-      properties['SMS Consent'] = {
-        checkbox: sms_consent
       };
     }
 
@@ -350,12 +332,6 @@ module.exports = async (req, res) => {
     }
 
     // ===== ACTIVECAMPAIGN INTEGRATION =====
-    if (ac_sync_status) {
-      properties['AC Sync Status'] = {
-        select: { name: ac_sync_status }
-      };
-    }
-
     if (tags && Array.isArray(tags) && tags.length > 0) {
       properties['Tags'] = {
         multi_select: tags.map(tag => ({ name: tag }))
