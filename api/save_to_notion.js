@@ -85,7 +85,10 @@ module.exports = async (req, res) => {
       website_version,
       
       // ===== ACTIVECAMPAIGN FIELDS =====
-      tags
+      tags,
+
+      website_version
+
     } = req.body;
 
     // Only save if email OR phone is provided
@@ -344,6 +347,12 @@ module.exports = async (req, res) => {
     if (tags && Array.isArray(tags) && tags.length > 0) {
       properties['Tags'] = {
         multi_select: tags.map(tag => ({ name: tag }))
+      };
+    }
+
+    if (website_version) {
+      properties['website_version'] = {
+        select: { name: website_version }
       };
     }
 
