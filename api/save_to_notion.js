@@ -81,6 +81,8 @@ module.exports = async (req, res) => {
       
       // ===== DEALMAKER INTEGRATION =====
       investor_state,
+
+      website_version,
       
       // ===== ACTIVECAMPAIGN FIELDS =====
       tags
@@ -328,6 +330,13 @@ module.exports = async (req, res) => {
     if (investor_state) {
       properties['investor_state_ecf26'] = {
         select: { name: investor_state }
+      };
+    }
+
+    // ===== A/B TESTING =====
+    if (website_version) {
+      properties['website_version'] = {
+        select: { name: website_version }
       };
     }
 
